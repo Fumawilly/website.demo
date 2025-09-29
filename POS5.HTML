@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>POS & Inventory System with CRM</title>
+<style>
+/* --- Base --- */
+body {
+    font-family: 'Inter', Arial, sans-serif;
+    margin: 0; padding: 0;
+    background: #f5f7fa;
+    color: #333;
+}
+h1,h2,h3 { margin:0 0 10px 0; }
+
+/* --- Header --- */
+.header {
+    background: linear-gradient(90deg, #43a047, #66bb6a);
+    color: white;
+    padding: 20px 0;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+/* --- Tabs --- */
+.tabs {
+    display: flex;
+    justify-content: flex-start;
+    background: #eceff1;
+    border-bottom: 1px solid #cfd8dc;
+}
+.tab-btn {
+    padding: 14px 22px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    font-weight: 600;
+    color: #555;
+    transition: all 0.3s ease;
+    font-size: 16px;
+}
+.tab-btn:hover { background: #c8e6c9; color: #2e7d32; }
+.tab-btn.active { background: #2e7d32; color: white; border-radius: 5px 5px 0 0; }
+
+/* --- Container --- */
+.container { padding: 25px; }
+.section { display: none; animation: fadeIn 0.3s ease-in; }
+.section.active { display: block; }
+@keyframes fadeIn { from {opacity:0} to {opacity:1} }
+
+/* --- Buttons --- */
+.btn {
+    padding: 10px 16px;
+    background: #2e7d32;
+    color: white;
+    border: none;
+    cursor: pointer;
+    margin: 5px 0;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+.btn:hover:not(:disabled) { background: #1b5e20; transform: translateY(-2px); }
+.btn:disabled { background: #b0bec5; cursor: not-allowed; }
+
+/* --- Input & Select --- */
+input[type="text"], input[type="number"], input[type="password"], select, textarea {
+    padding: 10px 12px;
+    margin: 5px 0;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #b0bec5;
+    transition: all 0.2s;
+}
+input:focus, select:focus, textarea:focus { border-color: #2e7d32; outline: none; }
+
+/* --- Product / Cart / Inventory Items --- */
+.product-item, .cart-item, .inventory-item, .account-item, .customer-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: #fff;
+    margin-bottom: 8px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.product-item:hover, .cart-item:hover, .inventory-item:hover, .account-item:hover, .customer-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+/* --- Table --- */
+.receipt-table, .receipt-table th, .receipt-table td, .erp-table, .erp-table th, .erp-table td {
+    border: 1px solid #ddd;
+    border-collapse: collapse;
+    padding: 10px;
+    font-size: 14px;
+}
+.receipt-table th, .erp-table th {
+    background: #c8e6c9;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+}
+.receipt-table tr:hover, .erp-table tr:hover { background: #f1f8e9; }
+
+/* --- Report Boxes --- */
+.report-box {
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+}
+
+/* --- Modal --- */
+.modal {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background: rgba(0,0,0,0.4);
+    z-index:1000;
+}
+#login-modal .modal-content {
+    width: 360px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    display:flex; flex-direction:column; gap:15px;
+}
+
+/* --- Total --- */
+.total { font-weight: 700; text-align: right; margin-top: 15px; font-size: 16px; }
+
+/* --- Misc --- */
+.card { background: #fff; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>POS & Inventory System with CRM</h1>
+</div>
+
+<div class="tabs">
+    <button class="tab-btn" id="pos-tab-btn" onclick="showTab('pos')">🛒 POS</button>
+    <button class="tab-btn" id="inventory-tab-btn" onclick="showTab('inventory')">📦 Inventory</button>
+    <button class="tab-btn" id="reports-tab-btn" onclick="showTab('reports')">📊 Reports</button>
+    <button class="tab-btn" id="accounts-tab-btn" onclick="showTab('accounts')">👤 Accounts</button>
+    <button class="tab-btn" id="crm-tab-btn" onclick="showTab('crm')">💼 CRM</button>
+    <button class="btn" id="cashier-crm-btn" style="display:none;" onclick="showTab('crm')">💼 Manage Customers</button>
+    <button class="tab-btn" id="stores-tab-btn" onclick="showTab('stores')">🏬 Stores</button>
+    <button class="btn" onclick="logout()">Logout</button>
+</div>
+
+<div class="container">
+
+<!-- POS -->
+<div id="pos" class="section">
+    <h2>Sales Terminal</h2>
+    <input type="text" id="barcode-input" placeholder="Enter barcode" />
+    <button class="btn" onclick="scanBarcode()">Add by Barcode</button>
+    <h3>🔍 Search Products</h3>
+    <input type="text" id="product-search" placeholder="Search product by name or barcode..." onkeyup="filterProducts()" />
+    <div id="product-list"></div>
+
+    <h3>🧾 Customer</h3>
+    <select id="customer-select">
+        <option value="">Walk-in Customer</option>
+    </select>
+    <button class="btn" onclick="addCustomerToPOS()">Add New Customer</button>
+
+    <h3>🛒 Cart</h3>
+    <div id="cart-items"></div>
+    <div class="total" id="total-price">Total: ₱0.00</div>
+
+    <label><strong>Payment Method:</strong></label>
+    <select id="payment-method">
+        <option value="Cash">Cash</option>
+        <option value="Credit Card">Credit Card</option>
+        <option value="GCash">GCash</option>
+        <option value="Bank Transfer">Bank Transfer</option>
+    </select><br>
+
+    <button class="btn" onclick="checkout()">Checkout</button>
+    <button class="btn" onclick="exportSales()">Export Sales (CSV)</button>
+    <button class="btn" onclick="downloadReceipt()">Download Receipt</button>
+
+    <h3>🧾 Receipt</h3>
+    <table class="receipt-table" id="receipt-table">
+        <thead><tr><th>Product</th><th>Price</th></tr></thead>
+        <tbody></tbody>
+    </table>
+
+    <h3>📜 Recent Transactions</h3>
+    <div style="max-height:250px; overflow-y:auto;">
+        <table class="receipt-table" id="recent-sales-table">
+            <thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Price</th><th>Payment</th><th>Customer</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Inventory -->
+<div id="inventory" class="section">
+    <h2>Inventory Management</h2>
+    <div id="add-product-form" style="display:none;">
+        <h3 id="form-title">Add / Edit Product</h3>
+        <label>Name:</label><input type="text" id="new-name" />
+        <label>Price:</label><input type="number" id="new-price" min="0" step="0.01" />
+        <label>Stock per Store:</label>
+        <div id="store-stock-inputs"></div>
+        <label>Barcode:</label><input type="text" id="new-barcode" />
+        <button class="btn" onclick="saveProduct()">Save</button>
+        <button class="btn" onclick="cancelEdit()">Cancel</button>
+    </div>
+    <button class="btn" onclick="showAddProductForm()">+ Add New Product</button>
+    <div id="inventory-list"></div>
+</div>
+
+<!-- Reports -->
+<div id="reports" class="section">
+    <h2>📊 Sales & Inventory Reports</h2>
+    <div id="admin-filter" style="display:none; margin-bottom:15px;">
+        <label><strong>Filter by Store:</strong></label>
+        <select id="store-filter" onchange="updateReports()">
+            <option value="all">All Stores</option>
+        </select>
+    </div>
+    <div class="report-box"><h3>Today’s Sales</h3><div id="sales-today"></div></div>
+    <div class="report-box"><h3>This Week Sales</h3><div id="sales-week"></div></div>
+    <div class="report-box"><h3>Top Selling Products</h3><div id="top-products"></div></div>
+    <div class="report-box"><h3>⚠️ Low Stock Alerts</h3><div id="low-stock"></div></div>
+    <div class="report-box"><h3>📦 Suggested Purchase Orders</h3><div id="suggested-orders"></div></div>
+    <div class="admin-section">
+        <h3>Export Sales Reports</h3>
+        <button onclick="exportDetailedSalesPerStore()">Export Detailed Sales Per Store (CSV)</button>
+    </div>
+</div>
+
+<!-- Accounts -->
+<div id="accounts" class="section">
+    <h2>Account Management</h2>
+    <label>Username:</label><input type="text" id="acc-username" />
+    <label>Password:</label><input type="text" id="acc-password" />
+    <label>Role:</label>
+    <select id="acc-role">
+        <option value="admin">Admin</option>
+        <option value="cashier">Cashier</option>
+    </select>
+    <label>Store (if cashier):</label>
+    <select id="acc-store"></select>
+    <button class="btn" onclick="addAccount()">Add Account</button>
+    <h3>Existing Accounts</h3>
+    <div id="accounts-list"></div>
+</div>
+
+<!-- CRM -->
+<div id="crm" class="section">
+    <h2>Customer Management (CRM)</h2>
+    <label>Name:</label><input type="text" id="customer-name" />
+    <label>Phone:</label><input type="text" id="customer-phone" />
+    <label>Email:</label><input type="text" id="customer-email" />
+    <label>Notes:</label><textarea id="customer-notes"></textarea>
+    <button class="btn" onclick="addCustomer()">Add Customer</button>
+    <h3>Customer List</h3>
+    <div id="customer-list"></div>
+</div>
+
+<!-- Stores -->
+<div id="stores" class="section">
+    <h2>Store Management</h2>
+    <label>Store Name:</label>
+    <input type="text" id="store-name"/>
+    <button class="btn" onclick="addStore()">Add Store</button>
+    <h3>Existing Stores</h3>
+    <div id="store-list"></div>
+</div>
+
+<!-- Login Modal -->
+<div class="modal" id="login-modal">
+    <div class="modal-content">
+        <h2>Login</h2>
+        <label>Username:</label><input type="text" id="login-username" />
+        <label>Password:</label><input type="password" id="login-password" />
+        <button class="btn" onclick="login()">Login</button>
+    </div>
+</div>
+
+<script>
+// ------------------------- VARIABLES -------------------------
+let userRole=null,currentStore=null,cart=[],inventory=[],salesHistory=[],editingIndex=null,lastReceipt=[],accounts=[],customers=[],stores=[];
+const STORAGE={INV:'inventory',CART:'cart',SALES:'sales',ACC:'accounts',CRM:'customers',STORES:'stores'};
+const defaults=[{name:"Product A",price:10,barcode:'123',stockPerStore:{}},{name:"Product B",price:20,barcode:'456',stockPerStore:{}}];
+
+// ------------------------- LOAD / SAVE -------------------------
+function load(){
+    inventory=JSON.parse(localStorage.getItem(STORAGE.INV))||JSON.parse(JSON.stringify(defaults));
+    cart=JSON.parse(localStorage.getItem(STORAGE.CART))||[];
+    salesHistory=JSON.parse(localStorage.getItem(STORAGE.SALES))||[];
+    accounts=JSON.parse(localStorage.getItem(STORAGE.ACC))||[{username:'admin',password:'admin',role:'admin',store:null}];
+    customers=JSON.parse(localStorage.getItem(STORAGE.CRM))||[];
+    stores=JSON.parse(localStorage.getItem(STORAGE.STORES))||['Main Store'];
+    updateDynamicStoreInputs();
+    updateInventoryList();
+    updateAccountsUI();
+    updateReports();
+    updateCustomersUI();
+}
+function save(){
+    localStorage.setItem(STORAGE.INV,JSON.stringify(inventory));
+    localStorage.setItem(STORAGE.CART,JSON.stringify(cart));
+    localStorage.setItem(STORAGE.SALES,JSON.stringify(salesHistory));
+    localStorage.setItem(STORAGE.ACC,JSON.stringify(accounts));
+    localStorage.setItem(STORAGE.CRM,JSON.stringify(customers));
+    localStorage.setItem(STORAGE.STORES,JSON.stringify(stores));
+}
+
+// ------------------------- LOGIN / LOGOUT -------------------------
+function login(){
+    let u=document.getElementById('login-username').value;
+    let p=document.getElementById('login-password').value;
+    let acc=accounts.find(a=>a.username===u && a.password===p);
+    if(!acc){alert("Invalid login");return;}
+    userRole=acc.role;
+    currentStore=acc.store||stores[0];
+    document.getElementById('login-modal').style.display='none';
+    if(userRole==='cashier'){document.getElementById('cashier-crm-btn').style.display='inline-block';}
+    if(userRole!=='admin'){document.querySelectorAll('.admin-section, #stores-tab-btn, #accounts-tab-btn').forEach(e=>e.style.display='none');}
+    showTab('pos');
+}
+function logout(){userRole=null;currentStore=null;document.getElementById('login-modal').style.display='flex';}
+
+// ------------------------- TABS -------------------------
+function showTab(tab){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(tab).classList.add('active');document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));let btn=document.getElementById(tab+'-tab-btn');if(btn)btn.classList.add('active');}
+
+// ------------------------- INVENTORY -------------------------
+function updateInventoryList(){
+    let out='';inventory.forEach((p,i)=>{
+        out+=`<div class="inventory-item">
+        <span>${p.name} | ₱${p.price.toFixed(2)} | Barcode: ${p.barcode}</span>
+        <button class="btn" onclick="editProduct(${i})">Edit</button>
+        <button class="btn" onclick="deleteProduct(${i})">Delete</button>
+        </div>`;
+    });
+    document.getElementById('inventory-list').innerHTML=out;
+}
+function showAddProductForm(){document.getElementById('add-product-form').style.display='block';editingIndex=null;document.getElementById('form-title').innerText='Add Product';document.getElementById('new-name').value='';document.getElementById('new-price').value='';document.getElementById('new-barcode').value='';document.querySelectorAll('.store-stock').forEach(e=>e.value=0);}
+function saveProduct(){
+    let name=document.getElementById('new-name').value.trim();
+    let price=parseFloat(document.getElementById('new-price').value);
+    let barcode=document.getElementById('new-barcode').value.trim();
+    if(!name||isNaN(price)||!barcode){alert("All fields required");return;}
+    let stockPerStore={};document.querySelectorAll('.store-stock').forEach(e=>stockPerStore[e.dataset.store]=parseInt(e.value)||0);
+    let product={name,price,barcode,stockPerStore};
+    if(editingIndex!==null){inventory[editingIndex]=product;}else{inventory.push(product);}
+    save();updateInventoryList();document.getElementById('add-product-form').style.display='none';
+}
+function editProduct(i){
+    editingIndex=i;document.getElementById('add-product-form').style.display='block';document.getElementById('form-title').innerText='Edit Product';
+    let p=inventory[i];document.getElementById('new-name').value=p.name;document.getElementById('new-price').value=p.price;document.getElementById('new-barcode').value=p.barcode;
+    document.querySelectorAll('.store-stock').forEach(e=>e.value=p.stockPerStore[e.dataset.store]||0);
+}
+function deleteProduct(i){if(confirm("Delete this product?")){inventory.splice(i,1);save();updateInventoryList();}}
+
+// ------------------------- STORE MANAGEMENT -------------------------
+function addStore(){
+    if(userRole!=='admin'){alert("Access denied");return;}
+    let name=document.getElementById('store-name').value.trim();if(!name){alert("Store name required");return;}
+    if(stores.includes(name)){alert("Store already exists");return;}
+    stores.push(name);inventory.forEach(p=>{if(!(name in p.stockPerStore))p.stockPerStore[name]=0;});
+    save();updateStoresUI();updateDynamicStoreInputs();updateReports();updateAccountsUI();document.getElementById('store-name').value='';
+}
+function deleteStore(i){
+    if(userRole!=='admin'){alert("Access denied");return;}
+    if(!confirm("Delete this store?"))return;
+    let removed=stores.splice(i,1)[0];inventory.forEach(p=>{if(removed in p.stockPerStore)delete p.stockPerStore[removed];});
+    if(userRole==='cashier' && currentStore===removed){currentStore=stores.length>0?stores[0]:null;}
+    save();updateStoresUI();updateDynamicStoreInputs();updateReports();updateAccountsUI();
+}
+function updateStoresUI(){
+    let out='';stores.forEach((s,i)=>{out+=`<div class="inventory-item"><span>${s}</span><button class="btn" onclick="deleteStore(${i})">Delete</button></div>`;});
+    document.getElementById('store-list').innerHTML=out;
+}
+function updateDynamicStoreInputs(){
+    let container=document.getElementById('store-stock-inputs');if(container){container.innerHTML='';stores.forEach(s=>{let label=document.createElement('label');label.innerText=s+':';let input=document.createElement('input');input.type='number';input.min=0;input.step=1;input.value=0;input.className='store-stock';input.dataset.store=s;container.appendChild(label);container.appendChild(input);});}
+    let filter=document.getElementById('store-filter');if(filter){filter.innerHTML='<option value="all">All Stores</option>';stores.forEach(s=>{filter.innerHTML+=`<option value="${s}">${s}</option>`;});}
+    let accStore=document.getElementById('acc-store');if(accStore){accStore.innerHTML='';stores.forEach(s=>{accStore.innerHTML+=`<option value="${s}">${s}</option>`;});}
+    inventory.forEach(p=>{stores.forEach(s=>{if(!(s in p.stockPerStore))p.stockPerStore[s]=0;});});
+    save();updateInventoryList();
+}
+
+// ------------------------- ACCOUNTS -------------------------
+function addAccount(){
+    let u=document.getElementById('acc-username').value.trim();
+    let p=document.getElementById('acc-password').value.trim();
+    let r=document.getElementById('acc-role').value;
+    let s=document.getElementById('acc-store').value;
+    if(!u||!p){alert("Username & password required");return;}
+    if(accounts.find(a=>a.username===u)){alert("Username exists");return;}
+    accounts.push({username:u,password:p,role:r,store:r==='cashier'?s:null});
+    save();updateAccountsUI();
+}
+function updateAccountsUI(){
+    let out='';accounts.forEach((a,i)=>{out+=`<div class="account-item"><span>${a.username} | ${a.role} ${a.store?'- '+a.store:''}</span><button class="btn" onclick="deleteAccount(${i})">Delete</button></div>`;});document.getElementById('accounts-list').innerHTML=out;
+}
+function deleteAccount(i){if(confirm("Delete this account?")){accounts.splice(i,1);save();updateAccountsUI();}}
+
+// ------------------------- CRM -------------------------
+function addCustomer(){
+    let n=document.getElementById('customer-name').value.trim();
+    let ph=document.getElementById('customer-phone').value.trim();
+    let em=document.getElementById('customer-email').value.trim();
+    let notes=document.getElementById('customer-notes').value.trim();
+    if(!n){alert("Name required");return;}
+    customers.push({name:n,phone:ph,email:em,notes:notes});
+    save();updateCustomersUI();document.getElementById('customer-name').value='';document.getElementById('customer-phone').value='';document.getElementById('customer-email').value='';document.getElementById('customer-notes').value='';
+}
+function updateCustomersUI(){
+    let out='';customers.forEach((c,i)=>{out+=`<div class="customer-item"><span>${c.name} | ${c.phone} | ${c.email}</span><button class="btn" onclick="deleteCustomer(${i})">Delete</button></div>`;});document.getElementById('customer-list').innerHTML=out;
+    let sel=document.getElementById('customer-select');if(sel){sel.innerHTML='<option value="">Walk-in Customer</option>';customers.forEach(c=>{sel.innerHTML+=`<option value="${c.name}">${c.name}</option>`;});}
+}
+function deleteCustomer(i){if(confirm("Delete this customer?")){customers.splice(i,1);save();updateCustomersUI();}}
+
+// ------------------------- POS / CART -------------------------
+function filterProducts(){let term=document.getElementById('product-search').value.toLowerCase();let list='';inventory.forEach((p,i)=>{if(p.name.toLowerCase().includes(term)||p.barcode.includes(term)){list+=`<div class="product-item"><span>${p.name} | ₱${p.price.toFixed(2)}</span><button class="btn" onclick="addToCart(${i})">Add</button></div>`;}});document.getElementById('product-list').innerHTML=list;}
+function addToCart(i){let p=inventory[i];let qty=1;let existing=cart.find(c=>c.name===p.name);if(existing){existing.qty+=qty;}else{cart.push({name:p.name,price:p.price,qty:qty,barcode:p.barcode});}updateCart();}
+function updateCart(){let out='';let total=0;cart.forEach(c=>{out+=`<div class="cart-item"><span>${c.name} x ${c.qty} | ₱${(c.price*c.qty).toFixed(2)}</span><button class="btn" onclick="removeFromCart('${c.name}')">Remove</button></div>`;total+=c.price*c.qty;});document.getElementById('cart-items').innerHTML=out;document.getElementById('total-price').innerText='Total: ₱'+total.toFixed(2);}
+function removeFromCart(name){cart=cart.filter(c=>c.name!==name);updateCart();}
+function scanBarcode(){let code=document.getElementById('barcode-input').value.trim();if(!code)return;let p=inventory.find(p=>p.barcode===code);if(!p){alert("Product not found");return;}addToCart(inventory.indexOf(p));document.getElementById('barcode-input').value='';}
+function checkout(){
+    if(cart.length===0){alert("Cart empty");return;}
+    let customer=document.getElementById('customer-select').value;
+    let method=document.getElementById('payment-method').value;
+    let date=new Date().toISOString();
+    cart.forEach(c=>{
+        if(!inventory.find(p=>p.name===c.name).stockPerStore[currentStore])inventory.find(p=>p.name===c.name).stockPerStore[currentStore]=0;
+        inventory.find(p=>p.name===c.name).stockPerStore[currentStore]-=c.qty;
+    });
+    salesHistory.push({date,items:JSON.parse(JSON.stringify(cart)),payment:method,customer:customer,store:currentStore});
+    lastReceipt=JSON.parse(JSON.stringify(cart));cart=[];updateCart();updateInventoryList();updateReports();save();alert("Checkout complete");updateRecentSales();}
+function updateRecentSales(){let out='';salesHistory.slice(-10).forEach(s=>{s.items.forEach(i=>{out+=`<tr><td>${s.date}</td><td>${i.name}</td><td>${i.qty}</td><td>₱${(i.price*i.qty).toFixed(2)}</td><td>${s.payment}</td><td>${s.customer||'Walk-in'}</td></tr>`;});});document.querySelector('#recent-sales-table tbody').innerHTML=out;}
+function downloadReceipt(){if(lastReceipt.length===0){alert("No receipt");return;}let txt='Receipt\n';lastReceipt.forEach(i=>{txt+=`${i.name} x ${i.qty} - ₱${(i.price*i.qty).toFixed(2)}\n`;});let blob=new Blob([txt],{type:'text/plain'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='receipt.txt';a.click();}
+function exportSales(){if(salesHistory.length===0){alert("No sales");return;}let csv='Date,Store,Customer,Payment,Product,Qty,Price\n';salesHistory.forEach(s=>{s.items.forEach(i=>{csv+=`${s.date},${s.store},${s.customer||'Walk-in'},${s.payment},${i.name},${i.qty},${i.price}\n`;});});let blob=new Blob([csv],{type:'text/csv'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sales.csv';a.click();}
+
+// ------------------------- REPORTS -------------------------
+function updateReports(){
+    let todaySales=salesHistory.filter(s=>new Date(s.date).toDateString()===new Date().toDateString());
+    let todayTotal=todaySales.reduce((sum,s)=>sum+s.items.reduce((s2,i)=>s2+i.price*i.qty,0),0);
+    document.getElementById('sales-today').innerText='₱'+todayTotal.toFixed(2);
+
+    let weekSales=salesHistory.filter(s=>{let d=new Date(s.date);let now=new Date();return d>new Date(now.getFullYear(),now.getMonth(),now.getDate()-7);});
+    let weekTotal=weekSales.reduce((sum,s)=>sum+s.items.reduce((s2,i)=>s2+i.price*i.qty,0),0);
+    document.getElementById('sales-week').innerText='₱'+weekTotal.toFixed(2);
+
+    let productCounts={};inventory.forEach(p=>productCounts[p.name]=0);salesHistory.forEach(s=>s.items.forEach(i=>{productCounts[i.name]+=i.qty;}));
+    let topProducts=Object.entries(productCounts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(x=>`${x[0]}: ${x[1]}`).join(', ');
+    document.getElementById('top-products').innerText=topProducts;
+
+    let lowStock=inventory.filter(p=>Object.values(p.stockPerStore).some(q=>q<5)).map(p=>p.name+' ('+JSON.stringify(p.stockPerStore)+')').join(', ');
+    document.getElementById('low-stock').innerText=lowStock;
+
+    let suggested=inventory.filter(p=>Object.values(p.stockPerStore).some(q=>q<5)).map(p=>p.name+' ('+JSON.stringify(p.stockPerStore)+')').join(', ');
+    document.getElementById('suggested-orders').innerText=suggested;
+}
+function exportDetailedSalesPerStore(){
+    if(salesHistory.length===0){alert("No sales");return;}
+    let csv='Date,Store,Customer,Payment,Product,Qty,Price\n';salesHistory.forEach(s=>{s.items.forEach(i=>{csv+=`${s.date},${s.store},${s.customer||'Walk-in'},${s.payment},${i.name},${i.qty},${i.price}\n`;});});let blob=new Blob([csv],{type:'text/csv'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sales_per_store.csv';a.click();
+}
+
+// ------------------------- ACCOUNTS / POS CUSTOMER -------------------------
+function addCustomerToPOS(){let n=prompt("Customer Name");if(!n)return;customers.push({name:n,phone:'',email:'',notes:''});save();updateCustomersUI();}
+load();
+</script>
+
+</body>
+</html>
